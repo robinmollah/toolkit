@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# base64decode.sh
-# Usage: ./base64decode.sh ZGRMZ3Z3ZFFNS0lkMnFkY1RKZnF0ZWxleFpKU2txTXI=
+# base64decode
+# Usage: ./base64decode ZGRMZ3Z3ZFFNS0lkMnFkY1RKZnF0ZWxleFpKU2txTXI=
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <base64-string>"
