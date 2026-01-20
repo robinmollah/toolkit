@@ -1,0 +1,96 @@
+<summary>
+Stream Editor (sed) for filtering and transforming text using patterns.
+</summary>
+
+BASIC
+-----
+sed 's/old/new/' file.txt
+sed 's/old/new/g' file.txt
+sed -i 's/old/new/g' file.txt
+
+PRINT
+-----
+sed -n 'p' file.txt
+sed -n '5p' file.txt
+sed -n '2,5p' file.txt
+
+DELETE
+------
+sed '3d' file.txt
+sed '2,5d' file.txt
+sed '/error/d' file.txt
+
+REPLACE
+-------
+sed 's/old/new/' file.txt
+sed 's/old/new/2' file.txt
+sed 's/old/new/g' file.txt
+sed 's/old/new/i' file.txt
+
+IN-PLACE EDIT
+-------------
+sed -i '' 's/foo/bar/g' file.txt     # macOS
+sed -i 's/foo/bar/g' file.txt        # Linux
+
+PATTERN MATCH
+-------------
+sed '/error/p' file.txt
+sed -n '/error/p' file.txt
+
+ANCHORS
+-------
+sed 's/^start/BEGIN/' file.txt
+sed 's/end$/FINISH/' file.txt
+
+CAPTURE GROUP
+-------------
+sed 's/\(foo\)bar/\1baz/' file.txt
+
+EXTENDED REGEX
+--------------
+sed -E 's/(foo)bar/\1baz/' file.txt
+
+MULTIPLE COMMANDS
+-----------------
+sed -e 's/a/A/g' -e 's/b/B/g' file.txt
+
+INSERT / APPEND
+---------------
+sed '1i\HEADER' file.txt
+sed '$a\FOOTER' file.txt
+
+CHANGE LINE
+-----------
+sed '3c\NEW LINE' file.txt
+
+RANGE
+-----
+sed '2,5s/a/A/g' file.txt
+
+FROM PATTERN TO PATTERN
+-----------------------
+sed '/START/,/END/s/foo/bar/g' file.txt
+
+REMOVE EMPTY LINES
+------------------
+sed '/^$/d' file.txt
+
+TRIM SPACES
+-----------
+sed 's/^ *//' file.txt
+sed 's/ *$//' file.txt
+
+NUMBER LINES
+------------
+sed = file.txt | sed 'N;s/\n/ /'
+
+DEBUG
+-----
+sed -n 'l' file.txt
+
+HELP
+----
+man sed
+sed --help
+
+=====================================

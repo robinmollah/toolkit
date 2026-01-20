@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# This script lists all cheatsheets in the cheatsheets directory
+# and shows the first 3 lines of each.
+#
+# Usage:
+#   cheatsheets             - List all cheatsheets with summaries
+#   cheatsheets [NAME]      - Show full content of a specific cheatsheet
+
+
+# Resolve the directory where the script is located, following symlinks
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+CHEATSHEETS_DIR="$SCRIPT_DIR/../cheatsheets"
+
+if [ ! -d "$CHEATSHEETS_DIR" ]; then
+    echo "Error: Cheatsheets directory not found at $CHEATSHEETS_DIR"
+    exit 1
+fi
+
+FILES=$(find "$CHEATSHEETS_DIR" -maxdepth 1 -type f -not -name ".*" | sort)
+
+if [ -z "$FILES" ]; then
+    echo "No cheatsheets found in $CHEATSHEETS_DIR"
+    exit 0
+fi
+
+# Colors
+YELLOW=$'\e[1;33m'
+NC=$'\e[0m' # No Color
+
+# Function to highlight all-uppercase lines
+highlight_headers() {
+    # Match lines that have at least one capital letter and NO lowercase letters
+    # This captures headers while ignoring empty lines or lines with only symbols/numbers
+    sed -e "s/^[^a-z]*[A-Z][^a-z]*$/${YELLOW}&${NC}/"
+}
+
+# If an argument is provided, try to find for that specific file
+if [ -n "$1" ]; then
+    QUERY="$1"
+    # Check for exact match
+    if [ -f "$CHEATSHEETS_DIR/$QUERY" ]; then
+        echo "Showing content for: $QUERY"
+        echo "====================================="
+        cat "$CHEATSHEETS_DIR/$QUERY" | highlight_headers
+        echo -e "\n====================================="
+        exit 0
+    fi
+
+    # Check for match with any extension
+    MATCH=$(find "$CHEATSHEETS_DIR" -maxdepth 1 -type f -name "$QUERY.*" -print -quit)
+    if [ -n "$MATCH" ]; then
+        FILENAME=$(basename "$MATCH")
+        echo "Showing content for: $FILENAME"
+        echo "====================================="
+        cat "$MATCH" | highlight_headers
+        echo -e "\n====================================="
+        exit 0
+    else
+        echo "Error: No cheatsheet found matching '$QUERY'"
+        exit 1
+    fi
+fi
+
+echo "Available Cheatsheets:"
+echo "======================"
+
+for FILE in $FILES; do
+    FILENAME=$(basename "$FILE")
+    echo -e "\n--- $FILENAME ---"
+    # Extract content between <summary> and </summary>
+    awk '/<summary>/{flag=1; next} /<\/summary>/{flag=0} flag' "$FILE" | sed '/^[[:space:]]*$/d' | highlight_headers
+done
+
+echo -e "\n======================"
+

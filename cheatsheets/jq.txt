@@ -1,0 +1,108 @@
+
+<summary>
+Pretty print, filter and transform JSON data using jq.
+</summary>
+
+BASIC
+-----
+jq '.' file.json
+cat file.json | jq '.'
+
+SELECT FIELD
+------------
+jq '.name'
+jq '.user.name'
+
+ARRAY ACCESS
+------------
+jq '.items[0]'
+jq '.items[]'
+
+FILTER (select)
+---------------
+jq '.items[] | select(.age > 30)'
+jq '.[] | select(.status=="active")'
+
+MULTIPLE CONDITIONS
+-------------------
+jq '.[] | select(.age>20 and .city=="NY")'
+
+RENAME FIELDS
+-------------
+jq '.[] | {id:.userId, mail:.email}'
+
+DELETE FIELD
+------------
+jq 'del(.password)'
+
+ADD FIELD
+---------
+jq '. + {country:"USA"}'
+
+UPDATE VALUE
+------------
+jq '.age += 1'
+
+SORT
+----
+jq 'sort_by(.age)'
+jq 'sort_by(.age) | reverse'
+
+UNIQUE
+------
+jq 'unique'
+jq 'unique_by(.id)'
+
+GROUP
+-----
+jq 'group_by(.type)'
+
+COUNT
+-----
+jq '.items | length'
+
+SUM
+---
+jq '[.items[].price] | add'
+
+STRING
+------
+jq '.name | ascii_upcase'
+jq '.name | length'
+
+CONTAINS
+--------
+jq 'contains("prod")'
+jq '.name | contains("web")'
+
+MERGE FILES
+-----------
+jq -s 'add' f1.json f2.json
+
+FLATTEN
+-------
+jq 'flatten'
+
+KEYS
+----
+jq 'keys'
+
+TO CSV
+------
+jq -r '.[] | [.id,.name] | @csv'
+
+RAW OUTPUT
+----------
+jq -r '.name'
+
+DEBUG
+-----
+jq 'type'
+jq '. | paths'
+
+HELP
+----
+jq --help
+man jq
+
+=====================================

@@ -1,0 +1,87 @@
+<summary>
+AWS JMESPath CHEATSHEET (--query)
+</summary>
+
+BASIC
+-----
+aws <service> <command> --query '<expr>' --output table
+
+SELECT
+------
+[].InstanceId
+[].{ID:InstanceId, IP:PublicIpAddress}
+
+NESTED
+------
+Reservations[].Instances[].InstanceId
+
+FILTER
+------
+[?State.Name=='running']
+[?PublicIpAddress!=null]
+[?contains(Tags[].Key,'Name')]
+
+COMPARISON
+----------
+[?Size > `100`]
+[?CpuOptions.CoreCount >= `2`]
+
+SORT
+----
+sort_by(@,&LaunchTime)
+sort_by(@,&Size)[-1]
+
+FIRST / LAST
+------------
+[0]
+[-1]
+
+LENGTH
+------
+length(@)
+
+FUNCTIONS
+---------
+contains(@,'prod')
+starts_with(Name,'web')
+ends_with(Name,'01')
+to_string(Size)
+
+TAGS
+----
+[?Tags[?Key=='Env' && Value=='prod']]
+
+Get tag value:
+[].Tags[?Key=='Name'].Value | [0]
+
+LOGICAL
+-------
+[?A=='x' && B=='y']
+[?A=='x' || B=='y']
+
+PROJECTION
+----------
+[].Instances[].{ID:InstanceId, State:State.Name}
+
+FORMAT
+------
+--output table
+--output json
+--output text
+
+REAL AWS EXAMPLES
+-----------------
+Running EC2:
+aws ec2 describe-instances \
+--query "Reservations[].Instances[?State.Name=='running'].InstanceId"
+
+S3 buckets:
+aws s3api list-buckets \
+--query "Buckets[].Name"
+
+IAM users:
+aws iam list-users \
+--query "Users[].UserName"
+
+
+=====================================
