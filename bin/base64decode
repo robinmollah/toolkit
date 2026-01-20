@@ -8,5 +8,8 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-echo "$1" | base64 --decode | pbcopy
+decoded=$(echo "$1" | base64 --decode)
+echo "$decoded"
+echo -n "$decoded" | pbcopy
 
+echo -e "\nDecoded string copied to clipboard."
