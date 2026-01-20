@@ -49,3 +49,19 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
 else
     echo "Success: $INSTALL_DIR is in your PATH. You can now use the binaries from anywhere!"
 fi
+
+# Zsh Completion Setup
+ZSHRC="$HOME/.zshrc"
+COMP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/completions"
+
+if [ -f "$ZSHRC" ]; then
+    echo "---"
+    echo "Checking Zsh completion setup..."
+    if ! grep -q "$COMP_DIR" "$ZSHRC"; then
+        echo "Adding RobinCLI completions to $ZSHRC..."
+        echo -e "\n# RobinCLI completions\nfpath=($COMP_DIR \$fpath)\nautoload -Uz compinit && compinit" >> "$ZSHRC"
+        echo "Success: Zsh completions activated. Please restart your terminal or run: source ~/.zshrc"
+    else
+        echo "Success: RobinCLI completions already configured in $ZSHRC."
+    fi
+fi

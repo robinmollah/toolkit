@@ -1,0 +1,29 @@
+#compdef base64decode cheatsheets clean-url generate-env kill-port list psql_run set-env-vars
+
+_robincli() {
+    local line
+    case $service in
+        cheatsheets)
+            # Find the cheatsheets directory relative to the binary
+            local SCRIPT_DIR="$(dirname "$(realpath "$(which cheatsheets)")")"
+            local CHEATSHEETS_DIR="$SCRIPT_DIR/../cheatsheets"
+            if [ -d "$CHEATSHEETS_DIR" ]; then
+                # List files in cheatsheets directory for completion
+                _arguments "1:cheatsheet:($(ls "$CHEATSHEETS_DIR" | sed 's/\.txt$//'))"
+            fi
+            ;;
+        psql_run)
+            _arguments \
+                '1:SQL Query:' \
+                '--safe[Allow non-SELECT queries]'
+            ;;
+        kill-port)
+            _arguments "1:port:_ports"
+            ;;
+        generate-env)
+            _arguments "1:namespace: "
+            ;;
+    esac
+}
+
+_robincli "$@"
