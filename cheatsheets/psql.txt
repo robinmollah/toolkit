@@ -1,0 +1,107 @@
+<summary>
+ PSQL (PostgreSQL) CHEATSHEET
+</summary>
+
+CONNECT
+-------
+psql -U user -d db
+psql -h host -U user -d db
+\c dbname
+
+HELP
+----
+\?
+\h SELECT
+
+DATABASES
+---------
+\l              -> list databases
+\c dbname       -> connect database
+\conninfo       -> current connection
+
+TABLES
+------
+\dt             -> list tables
+\dt+            -> table details
+\d table        -> describe table
+\d+ table       -> full details
+
+SCHEMAS
+-------
+\dn
+SET search_path TO myschema;
+
+USERS / ROLES
+-------------
+\du
+CREATE ROLE bob LOGIN PASSWORD '123';
+GRANT ALL ON DATABASE db TO bob;
+
+QUERY
+-----
+SELECT * FROM table;
+SELECT col1,col2 FROM table;
+SELECT * FROM table LIMIT 10;
+SELECT * FROM table WHERE id=1;
+SELECT COUNT(*) FROM table;
+
+INSERT
+------
+INSERT INTO table VALUES (1,'name');
+INSERT INTO table(col1,col2) VALUES (1,'x');
+
+UPDATE
+------
+UPDATE table SET col='x' WHERE id=1;
+
+DELETE
+------
+DELETE FROM table WHERE id=1;
+
+ORDER & GROUP
+-------------
+SELECT * FROM t ORDER BY col DESC;
+SELECT col,COUNT(*) FROM t GROUP BY col;
+
+JOINS
+-----
+SELECT *
+FROM a
+JOIN b ON a.id=b.id;
+
+TRANSACTIONS
+------------
+BEGIN;
+COMMIT;
+ROLLBACK;
+
+INDEX
+-----
+CREATE INDEX idx_name ON t(col);
+DROP INDEX idx_name;
+
+BACKUP
+------
+pg_dump db > db.sql
+pg_dump -U user db > db.sql
+
+RESTORE
+-------
+psql db < db.sql
+
+OUTPUT
+------
+\x              -> expanded view
+\timing         -> query time
+\pset pager off
+
+HISTORY
+-------
+\s              -> command history
+\e              -> edit last command
+
+QUIT
+----
+\q
+
+=====================================
