@@ -65,6 +65,7 @@ for SECRET_NAME in $SECRET_LIST; do
             echo "$KEY=$VALUE" >> "$ENV_FILE"
         fi
     done
+    echo "" >> "$ENV_FILE"
 done
 
 echo "---"
