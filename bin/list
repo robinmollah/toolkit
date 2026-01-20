@@ -1,2 +1,2 @@
 #!/bin/bash
-ls /Users/robinmollah/.local/bin
+ls $HOME/.local/bin
