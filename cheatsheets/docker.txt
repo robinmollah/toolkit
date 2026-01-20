@@ -1,0 +1,102 @@
+<summary>
+ DOCKER CHEATSHEET
+</summary>
+
+
+IMAGES
+------
+docker images
+docker pull ubuntu
+docker rmi IMAGE_ID
+docker build -t myapp .
+docker tag myapp myrepo/myapp:v1
+
+CONTAINERS
+----------
+docker ps
+docker ps -a
+docker run ubuntu
+docker run -it ubuntu bash
+docker run -d -p 8080:80 nginx
+docker stop CONTAINER_ID
+docker start CONTAINER_ID
+docker restart CONTAINER_ID
+docker rm CONTAINER_ID
+
+EXEC
+----
+docker exec -it CONTAINER bash
+docker logs CONTAINER
+docker logs -f CONTAINER
+
+COPY FILES
+----------
+docker cp file.txt CONTAINER:/path
+docker cp CONTAINER:/path/file.txt .
+
+VOLUMES
+-------
+docker volume ls
+docker volume create myvol
+docker run -v myvol:/data ubuntu
+docker volume rm myvol
+
+NETWORK
+-------
+docker network ls
+docker network create mynet
+docker run --network mynet nginx
+
+CLEANUP
+-------
+docker system df
+docker system prune
+docker container prune
+docker image prune
+
+DOCKERFILE
+----------
+FROM ubuntu
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node","app.js"]
+
+BUILD & RUN
+-----------
+docker build -t app .
+docker run -p 3000:3000 app
+
+TAGS
+----
+docker build -t app:v1 .
+docker push app:v1
+
+COMPOSE
+-------
+docker compose up
+docker compose up -d
+docker compose down
+docker compose ps
+docker compose logs
+
+INSPECT
+-------
+docker inspect CONTAINER
+docker stats
+
+SEARCH
+------
+docker search redis
+
+SAVE / LOAD
+-----------
+docker save -o img.tar myimg
+docker load -i img.tar
+
+HELP
+----
+docker help
+docker run --help
+
+=====================================
