@@ -13,6 +13,7 @@ done
 
 if [ -z "$QUERY" ]; then
   echo "Usage: $0 \"SQL_QUERY\" [--safe]"
+  echo -e "\nAutomatically reads the .env file and sets the environment variables before running the query."
   exit 1
 fi
 
