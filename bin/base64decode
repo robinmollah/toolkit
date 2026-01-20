@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# base64decode.sh
+# Usage: ./base64decode.sh ZGRMZ3Z3ZFFNS0lkMnFkY1RKZnF0ZWxleFpKU2txTXI=
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <base64-string>"
+  exit 1
+fi
+
+echo "$1" | base64 --decode | pbcopy
+

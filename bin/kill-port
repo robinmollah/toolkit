@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Usage: ./kill_port <port_number>
+
+PORT=$1
+
+if [[ -z "$PORT" ]]; then
+  echo "❌ Error: No port number provided."
+  echo "Usage: $0 <port_number>"
+  exit 1
+fi
+
+PID=$(lsof -ti tcp:$PORT)
+
+if [[ -z "$PID" ]]; then
+  echo "✅ No process found using port $PORT."
+else
+  echo "⚠️  Killing process $PID using port $PORT..."
+  kill -9 $PID
+  echo "✅ Process killed."
+fi
+

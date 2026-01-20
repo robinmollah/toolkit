@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import sys
+import re
+
+def clean_curl(input_file, new_host):
+    with open(input_file, 'r') as f:
+        lines = f.readlines()
+
+    # Step 1: Remove lines starting from the one that has -H 'dnt:
+    cleaned_lines = []
+    dnt_found = False
+    for line in lines:
+        if not dnt_found:
+            cleaned_lines.append(line)
+            if line.strip().startswith("-H 'dnt:"):
+                dnt_found = True
+        else:
+            if not line.strip().startswith("-H"):
+                cleaned_lines.append(line)
+
+    # Step 2: Replace the base URL
+    curl_pattern = re.compile(r"(curl\s+')https://[^/]+(/[^']*)'")
+    replaced_lines = []
+    for line in cleaned_lines:
+        protocol = "https"
+        if new_host.startswith("0"):
+                protocol = "http"
+        replaced_line = curl_pattern.sub(rf"\1{protocol}://{new_host}\2'", line)
+        replaced_lines.append(replaced_line)
+
+    return ''.join(replaced_lines)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Overview: cleans a curl file which is copied from chrome browser.\nUsage: clean-url <input_file> <new_host>")
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    new_host = sys.argv[2]
+
+    result = clean_curl(input_file, new_host)
+    print(result)
+

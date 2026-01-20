@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# This script generates a .env file from Kubernetes secrets
+# ending with '-creds'.
+#
+# Usage: ./generate-env [NAMESPACE]
+#
+# If NAMESPACE is not provided, it will use the 'default' namespace.
+
+# Set the namespace if provided, otherwise it will use the current context's default namespace
+NAMESPACE=$1
+NAMESPACE_FLAG=""
+NAMESPACE_DISPLAY=""
+
+if [ -n "$NAMESPACE" ]; then
+    NAMESPACE_FLAG="-n $NAMESPACE"
+    NAMESPACE_DISPLAY=" in namespace '$NAMESPACE'"
+fi
+
+# The name of the output file
+ENV_FILE=".env"
+
+# Ensure the script is not writing to an existing .env file from a previous run
+if [ -f "$ENV_FILE" ]; then
+    > "$ENV_FILE"
+fi
+
+# Get all secrets in the specified namespace ending with -creds
+# The selector 'metadata.name!='''' is to avoid issues with older kubectl versions.
+SECRET_LIST=$(kubectl get secrets $NAMESPACE_FLAG --field-selector metadata.name!='' -o json | jq -r '.items[] | select(.metadata.name | endswith("-creds")) | .metadata.name')
+
+if [ -z "$SECRET_LIST" ]; then
+    echo "No secrets found ending with '-creds'$NAMESPACE_DISPLAY."
+    exit 0
+fi
+
+echo "Found secrets$NAMESPACE_DISPLAY:"
+echo "$SECRET_LIST"
+echo "---"
+
+# Loop through each secret
+for SECRET_NAME in $SECRET_LIST; do
+    echo "Processing secret: $SECRET_NAME"
+
+    # Get the secret data, ignore if data is null
+    SECRET_DATA=$(kubectl get secret "$SECRET_NAME" $NAMESPACE_FLAG -o json | jq '.data | select(. != null)')
+
+    if [ -z "$SECRET_DATA" ]; then
+        echo "Secret '$SECRET_NAME' has no data. Skipping."
+        continue
+    fi
+
+    # Loop through each key in the secret data
+    for KEY in $(echo "$SECRET_DATA" | jq -r 'keys[]'); do
+        # Get the value and decode it from base64
+        # The '|| true' is to handle cases where the value is not valid base64
+        VALUE=$(echo "$SECRET_DATA" | jq -r --arg KEY "$KEY" '.[$KEY]' | base64 --decode 2>/dev/null || true)
+
+        # Append to the .env file, handling multi-line values
+        if [[ "$VALUE" == *$'
+'* ]]; then
+            # For multi-line values, format as KEY="VALUE"
+            echo "$KEY=\"$VALUE\"" >> "$ENV_FILE"
+        else
+            echo "$KEY=$VALUE" >> "$ENV_FILE"
+        fi
+    done
+done
+
+echo "---"
+echo ".env file generated successfully at '$PWD/$ENV_FILE'"
