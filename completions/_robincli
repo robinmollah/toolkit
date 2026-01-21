@@ -23,6 +23,11 @@ _robincli() {
         generate-env)
             _arguments "1:namespace: "
             ;;
+        mongo-run)
+            _arguments \
+                '1:Mongo Query:' \
+                '--output[Specify output format]:format:(json csv)'
+            ;;
     esac
 }
 
