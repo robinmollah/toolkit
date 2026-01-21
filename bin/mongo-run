@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# ---------------------------------------
+# mongo-run
+# Run MongoDB queries non-interactively
+# ---------------------------------------
+
+OUTPUT_FORMAT="json"
+QUERY=""
+
+# Simple argument parsing
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --output)
+      OUTPUT_FORMAT="$2"
+      shift
+      ;;
+    *)
+      QUERY="$1"
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$QUERY" ]; then
+  echo "Usage:"
+  echo "  mongo-run \"db.collection.find({})\" [--output csv]"
+  echo
+  echo "Examples:"
+  echo "  mongo-run \"db.clients.find({})\" | jq"
+  echo "  mongo-run \"db.clients.find({})\" --output csv"
+  echo
+  exit 1
+fi
+
+# Load env
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
+
+if [ -z "$MONGODB_URI" ]; then
+  echo "❌ MONGODB_URI not set"
+  exit 1
+fi
+
+# Disable pager
+export MONGOSH_PAGER=cat
+
+# Execute
+JSON_RESULT=$(mongosh "$MONGODB_URI" --quiet --eval "JSON.stringify($QUERY.toArray())")
+
+if [ "$OUTPUT_FORMAT" == "csv" ]; then
+    echo "$JSON_RESULT" | jq -r 'if type == "array" and length > 0 then (.[0] | keys_unsafe) as $keys | $keys, (.[] | [.[$keys[]]]) | @csv else empty end'
+else
+    echo "$JSON_RESULT" | jq
+fi
