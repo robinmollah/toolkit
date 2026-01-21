@@ -6,7 +6,7 @@ if [ ! -f ".env" ]; then
 fi
 
 set -a
-source .env
+source ./.env
 set +a
 
 echo "Environment variables loaded from .env"
