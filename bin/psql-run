@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+SAFE_MODE=false
+QUERY=""
+
+for arg in "$@"; do
+  if [[ "$arg" == "--safe" ]]; then
+    SAFE_MODE=true
+  else
+    QUERY="$arg"
+  fi
+done
+
+if [ -z "$QUERY" ]; then
+  echo "Usage: $0 \"SQL_QUERY\" [--safe]"
+  echo -e "\nAutomatically reads the .env file and sets the environment variables before running the query."
+  exit 1
+fi
+
+# Case-insensitive check for SELECT at the start
+if [[ ! "$QUERY" =~ ^[[:space:]]*[sS][eE][lL][eE][cC][tT] ]]; then
+  if [ "$SAFE_MODE" = false ]; then
+    echo "Error: Only SELECT queries are allowed by default. Use --safe to execute other queries."
+    exit 1
+  fi
+
+  # Extra safety: Check for UPDATE or DELETE without WHERE clause
+  if [[ "$QUERY" =~ ^[[:space:]]*([uU][pP][dD][aA][tT][eE]|[dD][eE][lL][eE][tT][eE]) ]]; then
+    if [[ ! "$QUERY" =~ [wW][hH][eE][rR][eE] ]]; then
+      echo "ALERT: UPDATE or DELETE query without a WHERE clause is blocked for safety."
+      exit 1
+    fi
+  fi
+fi
+
+# load env
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
+
+export PGDATABASE="${PGDATABASE:-postgres}"
+export PGHOST="${PGHOST:-$PG_HOST}"
+export PGUSER="${PGUSER:-$PG_USER}"
+export PGPASSWORD="${PGPASSWORD:-$PG_PASSWORD}"
+
+# run query
+psql -c "$QUERY"
