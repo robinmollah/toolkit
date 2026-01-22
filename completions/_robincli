@@ -1,4 +1,4 @@
-#compdef base64decode cheatsheets clean-url generate-env kill-port list psql_run set-env-vars
+#compdef base64decode cheatsheets clean-url generate-env kill-port list psql-run set-env-vars
 
 _robincli() {
     local line
@@ -12,7 +12,7 @@ _robincli() {
                 _arguments "1:cheatsheet:($(ls "$CHEATSHEETS_DIR" | sed 's/\.txt$//'))"
             fi
             ;;
-        psql_run)
+        psql-run)
             _arguments \
                 '1:SQL Query:' \
                 '--safe[Allow non-SELECT queries]'
