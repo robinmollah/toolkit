@@ -103,6 +103,10 @@ db.orders.aggregate([
   {$group:{_id:"$user", total:{$sum:"$price"}}}
 ])
 
+db.orders.aggregate([
+  {$sortByCount: "$user"}
+])
+
 JOIN ($lookup)
 ---------------
 db.orders.aggregate([
