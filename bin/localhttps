@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -e
+
+# -------- CONFIG --------
+BASE_DIR="$HOME/.localhttps"
+CERT_DIR="$BASE_DIR/certs"
+NGINX_DIR="$BASE_DIR/nginx"
+HTTPS_PORT=443
+BIND_ADDR="127.0.0.1"
+# ------------------------
+
+DOMAIN="$1"
+TARGET_PORT="$2"
+
+if [[ -z "$DOMAIN" || -z "$TARGET_PORT" ]]; then
+  echo "Usage: localhttps <domain> <http_port>"
+  exit 1
+fi
+
+# -------- CHECKS --------
+
+command -v nginx >/dev/null || {
+  echo "❌ nginx not found"
+  exit 1
+}
+
+command -v mkcert >/dev/null || {
+  echo "❌ mkcert not found"
+  echo "Install: https://github.com/FiloSottile/mkcert"
+  exit 1
+}
+
+pgrep nginx >/dev/null || {
+  echo "❌ nginx is not running"
+  echo "Start it first"
+  exit 1
+}
+
+# -------- DIRS --------
+
+mkdir -p "$CERT_DIR/$DOMAIN"
+mkdir -p "$NGINX_DIR"
+
+CERT_PATH="$CERT_DIR/$DOMAIN/cert.pem"
+KEY_PATH="$CERT_DIR/$DOMAIN/key.pem"
+NGINX_CONF="$NGINX_DIR/$DOMAIN.conf"
+
+# -------- CERT --------
+
+if [[ ! -f "$CERT_PATH" || ! -f "$KEY_PATH" ]]; then
+  echo "🔐 Generating TLS cert for $DOMAIN"
+  mkcert -cert-file "$CERT_PATH" -key-file "$KEY_PATH" "$DOMAIN"
+else
+  echo "🔐 Certificate exists"
+fi
+
+# -------- NGINX CONF --------
+
+cat > "$NGINX_CONF" <<EOF
+server {
+    listen $BIND_ADDR:$HTTPS_PORT ssl;
+    http2 on;
+    server_name $DOMAIN;
+
+    ssl_certificate     $CERT_PATH;
+    ssl_certificate_key $KEY_PATH;
+
+    location / {
+        proxy_pass http://127.0.0.1:$TARGET_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+    }
+}
+EOF
+
+# -------- TEST & RELOAD --------
+
+sudo nginx -t
+sudo nginx -s reload
+
+# -------- HOSTS REMINDER --------
+
+if ! grep -q "$DOMAIN" /etc/hosts; then
+  echo
+  echo "⚠️  Add this to /etc/hosts:"
+  echo "127.0.0.1 $DOMAIN"
+fi
+
+# -------- DONE --------
+
+echo
+echo "✅ HTTPS ready"
+echo "→ https://$DOMAIN"
+echo "→ forwarding to http://localhost:$TARGET_PORT"
