@@ -1,21 +1,54 @@
 #!/bin/bash
 
+# Function to display help message
+show_help() {
+    cat << EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Generates a .env file from Kubernetes secrets and ConfigMaps.
+Automatically discovers secrets ending in '-creds' in the target namespace.
+
+Options:
+  --namespace NAMESPACE     Specify the Kubernetes namespace (default: current context's namespace or 'default').
+  --service-name NAME       Include secrets and envs for a specific service.
+                            Looks for: <NAME>-<ENV>-secrets (Secret) and <NAME>-<ENV>-envs (ConfigMap).
+                            Can be used multiple times.
+  --env ENV                 Specify the environment suffix (default: 'dev').
+                            Used when constructing secret/configmap names from --service-name.
+  -h, --help                Show this help message and exit.
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") --namespace backend
+  $(basename "$0") --service-name my-service --env prod
+EOF
+}
+
 # This script generates a .env file from Kubernetes secrets
 # ending with '-creds'.
-#
-# Usage: ./generate-env [--namespace NAMESPACE]
-#
-# If NAMESPACE is not provided, it will use the 'default' namespace.
 
 # Set the namespace if provided, otherwise it will use the current context's default namespace
 NAMESPACE=""
+EXTRA_SECRETS=""
+EXTRA_CONFIGMAPS=""
+SERVICE_NAMES=""
+ENV_TYPE="dev"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --namespace) NAMESPACE="$2"; shift ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+        --service-name) SERVICE_NAMES="$SERVICE_NAMES $2"; shift ;;
+        --env) ENV_TYPE="$2"; shift ;;
+        -h|--help) show_help; exit 0 ;;
+        *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
     shift
+done
+
+# Construct the list of secrets and configmaps based on the service names and env type
+for SVC in $SERVICE_NAMES; do
+    EXTRA_SECRETS="$EXTRA_SECRETS $SVC-$ENV_TYPE-secrets"
+    EXTRA_CONFIGMAPS="$EXTRA_CONFIGMAPS $SVC-$ENV_TYPE-envs"
 done
 NAMESPACE_FLAG=""
 NAMESPACE_DISPLAY=""
@@ -59,15 +92,24 @@ fi
 
 # Get all secrets in the specified namespace ending with -creds
 # The selector 'metadata.name!='''' is to avoid issues with older kubectl versions.
-SECRET_LIST=$(kubectl get secrets $NAMESPACE_FLAG --field-selector metadata.name!='' -o json | jq -r '.items[] | select(.metadata.name | endswith("-creds")) | .metadata.name')
+FOUND_SECRETS=$(kubectl get secrets $NAMESPACE_FLAG --field-selector metadata.name!='' -o json | jq -r '.items[] | select(.metadata.name | endswith("-creds")) | .metadata.name')
 
-if [ -z "$SECRET_LIST" ]; then
-    echo "No secrets found ending with '-creds'$NAMESPACE_DISPLAY."
+# Combine found secrets with extra secrets
+SECRET_LIST="$FOUND_SECRETS $EXTRA_SECRETS"
+
+# Trim leading/trailing whitespace
+SECRET_LIST=$(echo "$SECRET_LIST" | xargs)
+
+if [ -z "$SECRET_LIST" ] && [ -z "$EXTRA_CONFIGMAPS" ]; then
+    echo "No secrets found ending with '-creds' and no service names provided$NAMESPACE_DISPLAY."
     exit 0
 fi
 
 echo "Found secrets$NAMESPACE_DISPLAY:"
 echo "$SECRET_LIST"
+if [ -n "$EXTRA_CONFIGMAPS" ]; then
+    echo "Processing ConfigMaps: $EXTRA_CONFIGMAPS"
+fi
 echo "---"
 
 # Loop through each secret
@@ -87,6 +129,36 @@ for SECRET_NAME in $SECRET_LIST; do
         # Get the value and decode it from base64
         # The '|| true' is to handle cases where the value is not valid base64
         VALUE=$(echo "$SECRET_DATA" | jq -r --arg KEY "$KEY" '.[$KEY]' | base64 --decode 2>/dev/null || true)
+
+        # Append to the .env file, handling multi-line values
+        if [[ "$VALUE" == *$'
+'* ]]; then
+            # For multi-line values, format as KEY="VALUE"
+            echo "$KEY=\"$VALUE\"" >> "$ENV_FILE"
+        else
+            echo "$KEY=$VALUE" >> "$ENV_FILE"
+        fi
+    done
+    echo "" >> "$ENV_FILE"
+done
+
+# Loop through each configmap
+for CM_NAME in $EXTRA_CONFIGMAPS; do
+    echo "Processing ConfigMap: $CM_NAME"
+
+    # Get the configmap data, ignore if data is null
+    # Note: We do NOT use base64 decode for ConfigMaps
+    CM_DATA=$(kubectl get configmap "$CM_NAME" $NAMESPACE_FLAG -o json 2>/dev/null | jq '.data | select(. != null)')
+
+    if [ -z "$CM_DATA" ]; then
+        echo "ConfigMap '$CM_NAME' not found or has no data. Skipping."
+        continue
+    fi
+
+    # Loop through each key in the configmap data
+    for KEY in $(echo "$CM_DATA" | jq -r 'keys[]'); do
+        # Get the value (no decoding)
+        VALUE=$(echo "$CM_DATA" | jq -r --arg KEY "$KEY" '.[$KEY]')
 
         # Append to the .env file, handling multi-line values
         if [[ "$VALUE" == *$'
