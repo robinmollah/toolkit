@@ -21,7 +21,11 @@ _robincli() {
             _arguments "1:port:_ports"
             ;;
         generate-env)
-            _arguments "1:namespace: "
+            _arguments \
+                '--namespace[Specify namespace]:namespace:' \
+                '*--service-name[Include secrets/envs for service]:service name:' \
+                '--env[Specify environment suffix]:environment:(dev prod)' \
+                '(-h --help)'{-h,--help}'[Show help message]'
             ;;
         mongo-run)
             _arguments \
