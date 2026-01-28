@@ -3,19 +3,51 @@
 # This script generates a .env file from Kubernetes secrets
 # ending with '-creds'.
 #
-# Usage: ./generate-env [NAMESPACE]
+# Usage: ./generate-env [--namespace NAMESPACE]
 #
 # If NAMESPACE is not provided, it will use the 'default' namespace.
 
 # Set the namespace if provided, otherwise it will use the current context's default namespace
-NAMESPACE=$1
+NAMESPACE=""
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --namespace) NAMESPACE="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
 NAMESPACE_FLAG=""
 NAMESPACE_DISPLAY=""
 
 if [ -n "$NAMESPACE" ]; then
     NAMESPACE_FLAG="-n $NAMESPACE"
-    NAMESPACE_DISPLAY=" in namespace '$NAMESPACE'"
+    NAMESPACE_DISPLAY=" --namespace $NAMESPACE"
 fi
+
+# Get current context
+CONTEXT=$(kubectl config current-context)
+
+# Determine effective namespace for display
+if [ -n "$NAMESPACE" ]; then
+    EFFECTIVE_NAMESPACE="$NAMESPACE"
+else
+    EFFECTIVE_NAMESPACE=$(kubectl config view --minify --output 'jsonpath={..namespace}')
+    if [ -z "$EFFECTIVE_NAMESPACE" ]; then
+        EFFECTIVE_NAMESPACE="default"
+    fi
+fi
+
+echo "Context: $CONTEXT"
+echo "Namespace: $EFFECTIVE_NAMESPACE"
+echo ""
+echo "Use kubectx or kubens to switch context and namespace before running this script."
+echo "Press Space or Enter to continue..."
+
+read -n 1 -s -r key
+while [[ "$key" != "" && "$key" != " " ]]; do
+    read -n 1 -s -r key
+done
 
 # The name of the output file
 ENV_FILE=".env"
