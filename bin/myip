@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+SHOW_LAN=true
+SHOW_PUBLIC=true
+
+if [[ "$1" == "--public" ]]; then
+  SHOW_LAN=false
+elif [[ "$1" == "--lan" ]]; then
+  SHOW_PUBLIC=false
+elif [[ -n "$1" ]]; then
+  echo "Usage: myip [--public|--lan]"
+  exit 1
+fi
+
+if [[ "$SHOW_LAN" == true ]]; then
+  if [[ "$SHOW_PUBLIC" == true ]]; then
+    echo "Local IP(s):"
+  fi
+  ifconfig | awk '/inet / && !/127.0.0.1/ {print $2}'
+  
+  if [[ "$SHOW_PUBLIC" == true ]]; then
+    echo ""
+  fi
+fi
+
+if [[ "$SHOW_PUBLIC" == true ]]; then
+  if [[ "$SHOW_LAN" == true ]]; then
+    echo "Public IP:"
+  fi
+  curl -s -4 --max-time 5 https://ifconfig.me
+  echo ""
+fi
