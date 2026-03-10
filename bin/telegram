@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TOKEN="${TG_TOKEN:-}"
+CHAT="${TG_CHAT:-}"
+
+BASE="https://api.telegram.org/bot${TOKEN}"
+
+usage() {
+  cat <<EOF
+Usage:
+  telegram send "message"
+  telegram sendfile <file>
+  telegram raw <method> [data...]
+
+Examples:
+  telegram send "BTC pumped"
+  telegram sendfile chart.png
+  telegram raw getMe
+EOF
+}
+
+cmd="${1:-}"
+
+if [[ -z "$cmd" ]]; then
+  usage
+  exit 1
+fi
+
+case "$cmd" in
+
+send)
+  shift
+  msg="$*"
+
+  curl -s -X POST "$BASE/sendMessage" \
+    -d chat_id="$CHAT" \
+    -d text="$msg"
+  ;;
+
+sendfile)
+  shift
+  file="$1"
+
+  curl -s -X POST "$BASE/sendDocument" \
+    -F chat_id="$CHAT" \
+    -F document=@"$file"
+  ;;
+
+raw)
+  shift
+  method="$1"
+  shift
+
+  curl -s "$BASE/$method" "$@"
+  ;;
+
+*)
+  echo '{"error":"unknown command"}'
+  exit 1
+  ;;
+
+esac
