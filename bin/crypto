@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="https://fapi.binance.com"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  crypto <command> [symbol]
+
+Commands:
+  price     Latest futures price
+  mark      Mark price / index price / funding / next funding time
+  stats     24h ticker stats
+  book      Best bid/ask
+  oi        Open interest
+  all       Merged JSON from all major endpoints
+  raw       Fetch any supported endpoint directly
+
+Examples:
+  crypto price BTCUSDT
+  crypto mark ETHUSDT
+  crypto stats BTCUSDT | jq '.priceChangePercent'
+  crypto all BTCUSDT | jq
+  crypto book SOLUSDT | jq '{bidPrice, askPrice}'
+
+Notes:
+  - Default symbol: BTCUSDT
+  - Output is always JSON
+EOF
+}
+
+cmd="${1:-}"
+symbol="${2:-BTCUSDT}"
+
+if [[ -z "$cmd" ]]; then
+  usage
+  exit 1
+fi
+
+fetch() {
+  local path="$1"
+  curl -fsS "${BASE}${path}"
+}
+
+case "$cmd" in
+  price)
+    fetch "/fapi/v2/ticker/price?symbol=${symbol}"
+    ;;
+  mark)
+    fetch "/fapi/v1/premiumIndex?symbol=${symbol}"
+    ;;
+  stats)
+    fetch "/fapi/v1/ticker/24hr?symbol=${symbol}"
+    ;;
+  book)
+    fetch "/fapi/v1/ticker/bookTicker?symbol=${symbol}"
+    ;;
+  oi)
+    fetch "/fapi/v1/openInterest?symbol=${symbol}"
+    ;;
+  all)
+    price_json="$(fetch "/fapi/v2/ticker/price?symbol=${symbol}")"
+    mark_json="$(fetch "/fapi/v1/premiumIndex?symbol=${symbol}")"
+    stats_json="$(fetch "/fapi/v1/ticker/24hr?symbol=${symbol}")"
+    book_json="$(fetch "/fapi/v1/ticker/bookTicker?symbol=${symbol}")"
+    oi_json="$(fetch "/fapi/v1/openInterest?symbol=${symbol}")"
+
+    jq -n \
+      --argjson price "$price_json" \
+      --argjson mark "$mark_json" \
+      --argjson stats "$stats_json" \
+      --argjson book "$book_json" \
+      --argjson oi "$oi_json" \
+      '{
+        symbol: $price.symbol,
+        price: $price,
+        mark: $mark,
+        stats24h: $stats,
+        book: $book,
+        openInterest: $oi
+      }'
+    ;;
+  raw)
+    cat <<EOF
+{
+  "supported": {
+    "price": "${BASE}/fapi/v2/ticker/price?symbol=${symbol}",
+    "mark": "${BASE}/fapi/v1/premiumIndex?symbol=${symbol}",
+    "stats": "${BASE}/fapi/v1/ticker/24hr?symbol=${symbol}",
+    "book": "${BASE}/fapi/v1/ticker/bookTicker?symbol=${symbol}",
+    "oi": "${BASE}/fapi/v1/openInterest?symbol=${symbol}"
+  }
+}
+EOF
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "{\"error\":\"unknown command: ${cmd}\"}"
+    exit 1
+    ;;
+esac
